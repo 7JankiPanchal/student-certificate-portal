@@ -883,7 +883,18 @@ const Login = ({ onLogin }: { onLogin: (role: Role) => void }) => {
 // --- Main App Component ---
 
 export default function App() {
-  const [user, setUser] = useState<UserType | null>(null);
+  const [users, setUsers] = useState([]);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+   fetch("http://localhost:3000/users")//EC2 IP need to add
+      .then(res => res.json())
+      .then(data => {
+        console.log("Fetched users:", data); // 👈 debug
+        setUsers(data);
+      })
+      .catch(err => console.error(err));
+  }, []);
   const [activeView, setActiveView] = useState('Dashboard');
   const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCUMENTS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
