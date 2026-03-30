@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1019.0",
+    "dotenv": "^17.3.1",
     "framer-motion": "^12.29.2",
-    "react-dom": "^19.2.3",
+    "lucide-react": "^0.563.0",
     "react": "^19.2.3",
-    "lucide-react": "^0.563.0"
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
