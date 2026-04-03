@@ -57,17 +57,6 @@ The **Student Certificate Portal** is a full-stack system enabling:
 * File upload components connecting to **AWS S3** via pre-signed URLs
 * Login & user management forms
 
-**Folder Structure**:
-
-```
-/src
- ├─ /components
- ├─ /pages
- ├─ /hooks
- ├─ /services (API calls)
- └─ main.tsx
-```
-
 **Optional Screenshot:**
 `// Screenshot: Frontend login page / certificate upload form`
 
@@ -81,17 +70,6 @@ The **Student Certificate Portal** is a full-stack system enabling:
 * CRUD operations with **DynamoDB**
 * Pre-signed URL generation for **S3 file uploads**
 * Environment-driven configuration (`.env`)
-
-**Folder Structure**:
-
-```
-/backend
- ├─ server.js
- ├─ package.json
- ├─ routes/
- ├─ controllers/
- └─ utils/
-```
 
 **Optional Screenshot:**
 `// Screenshot: Backend running on EC2 or Postman API testing`
