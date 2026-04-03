@@ -887,7 +887,7 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-   fetch("http://localhost:3000/users")//EC2 IP need to add
+   fetch("http://localhost:5000/users")//EC2 IP need to add
       .then(res => res.json())
       .then(data => {
         console.log("Fetched users:", data); // 👈 debug
@@ -909,21 +909,47 @@ export default function App() {
   const handleLogin = (role: Role) => {
     setUser(role === 'student' ? MOCK_STUDENT : MOCK_TEACHER);
   };
+//------------------------------------------//
+ const handlePersonalUpload = async (doc) => {
+  try {
+    // 1. Get pre-signed URL from backend
+    const res = await fetch("http://localhost:5000/get-upload-url");
+    const data = await res.json();
 
-  const handlePersonalUpload = (doc: Partial<Document>) => {
-      const newDoc: Document = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: doc.name || 'Untitled',
-          type: doc.type || DocType.PERSONAL,
-          status: DocStatus.APPROVED,
-          uploadDate: new Date().toISOString().split('T')[0],
-          points: 0,
-          size: doc.size || '1.0 MB',
-          owner: user?.name || 'Student'
-      };
-      setDocuments(prev => [newDoc, ...prev]);
-  };
+    const uploadUrl = data.url;
+    const fileUrl = data.fileUrl;
 
+    // 2. Upload file to S3
+    await fetch(uploadUrl, {
+  method: "PUT",
+  headers: {
+    "Content-Type": doc.file.type || "application/pdf",
+  },
+  body: doc.file,
+});
+
+console.log(doc.file);
+
+    // 3. Save document in state
+    const newDoc = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: doc.name || 'Untitled',
+      type: doc.type || DocType.PERSONAL,
+      status: DocStatus.APPROVED,
+      uploadDate: new Date().toISOString().split('T')[0],
+      points: 0,
+      size: doc.size || '1.0 MB',
+      owner: user?.name || 'Student',
+      fileUrl: fileUrl   // ✅ S3 link
+    };
+
+    setDocuments(prev => [newDoc, ...prev]);
+
+  } catch (err) {
+    console.error("Upload failed:", err);
+  }
+};
+//------------------------------------------//
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
