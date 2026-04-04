@@ -7,8 +7,8 @@ pipeline {
     // -----------------------------
     environment {
         PORT = "5000"
-        AWS_ACCESS_KEY_ID = credentials('aws-access-id')        // Jenkins secret text ID
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-id')    // Jenkins secret text ID
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')        // Jenkins secret text ID
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')    // Jenkins secret text ID
         AWS_BUCKET_NAME = "your_s3_bucket"                     // Can also be Jenkins credential
         DYNAMO_REGION = "ap-south-1"
         DYNAMO_TABLE_NAME = "users"
