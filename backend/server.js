@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './.env' });
 
 import { saveToDB } from './dbOperations.js';
+dotenv.config();
+
 import express from 'express';
 import multer from 'multer';
 
@@ -105,4 +107,5 @@ app.post('/verify', upload.single('certificate'), async (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
 });
