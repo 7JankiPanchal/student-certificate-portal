@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: './.env' });
 
+import { saveToDB } from './dbOperations.js';
 import express from 'express';
 import multer from 'multer';
 
@@ -37,6 +38,8 @@ app.post('/upload', upload.single('certificate'), async (req, res) => {
 
         // ☁️ Step 3: Upload to S3
         const fileURL = await uploadFile(file);
+        const id = Date.now().toString(); // simple unique id
+        await saveToDB(id, fileURL, hash, signature);  
 
         // 🧠 Store for verification (temporary)
         storedData = {
