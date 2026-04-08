@@ -39,21 +39,35 @@ interface SidebarItemProps {
   badge?: string | number;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, onClick, badge }) => (
+const SidebarItem: React.FC<SidebarItemProps> = ({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+  badge
+}) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
-      active 
-        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
+      active
+        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
         : 'text-slate-500 hover:bg-slate-100'
     }`}
   >
     <div className="flex items-center space-x-3">
-      <Icon size={18} className={active ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'} />
+      <Icon
+        size={18}
+        className={active ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'}
+      />
       <span className="font-medium text-sm">{label}</span>
     </div>
+
     {badge && (
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+      <span
+        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          active ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'
+        }`}
+      >
         {badge}
       </span>
     )}
@@ -884,7 +898,7 @@ const Login = ({ onLogin }: { onLogin: (role: Role) => void }) => {
 
 export default function App() {
   const [users, setUsers] = useState([]);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserType | null>(null);
 
   useEffect(() => {
    fetch("http://localhost:5000/users")//EC2 IP need to add
@@ -906,29 +920,30 @@ export default function App() {
   // Defined pendingDocsCount here to fix scope issues in Teacher Dashboard view
   const pendingDocsCount = documents.filter(d => d.status === DocStatus.PENDING).length;
 
-  const handleLogin = (role: Role) => {
-    setUser(role === 'student' ? MOCK_STUDENT : MOCK_TEACHER);
-  };
+const handleLogin = (role: Role) => {
+  setUser(role === 'student' ? MOCK_STUDENT : MOCK_TEACHER);
+};
+
 //------------------------------------------//
- const handlePersonalUpload = async (doc) => {
+const handlePersonalUpload = async (doc: { file: File; name?: string; type?: DocType; size?: string }) => {
   try {
     // 1. Get pre-signed URL from backend
     const res = await fetch("http://localhost:5000/get-upload-url");
+    if (!res.ok) throw new Error(`Failed to get upload URL: ${res.statusText}`);
+    
     const data = await res.json();
-
-    const uploadUrl = data.url;
-    const fileUrl = data.fileUrl;
+    const { url: uploadUrl, fileUrl } = data;
 
     // 2. Upload file to S3
     await fetch(uploadUrl, {
-  method: "PUT",
-  headers: {
-    "Content-Type": doc.file.type || "application/pdf",
-  },
-  body: doc.file,
-});
+      method: "PUT",
+      headers: {
+        "Content-Type": doc.file.type || "application/pdf",
+      },
+      body: doc.file,
+    });
 
-console.log(doc.file);
+    console.log("Uploaded file:", doc.file);
 
     // 3. Save document in state
     const newDoc = {
@@ -940,7 +955,7 @@ console.log(doc.file);
       points: 0,
       size: doc.size || '1.0 MB',
       owner: user?.name || 'Student',
-      fileUrl: fileUrl   // ✅ S3 link
+      fileUrl,   // ✅ S3 link
     };
 
     setDocuments(prev => [newDoc, ...prev]);
@@ -949,280 +964,26 @@ console.log(doc.file);
     console.error("Upload failed:", err);
   }
 };
+
 //------------------------------------------//
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
+if (!user) {
+  return <Login onLogin={handleLogin} />;
+}
 
-  const sidebarItems = user.role === 'student' ? [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Document Hub', icon: Cloud },
-    { label: 'Certificate Upload', icon: FileCheck },
-    { label: 'Settings', icon: Settings },
-  ] : [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Review Panel', icon: ShieldCheck, badge: pendingDocsCount },
-    { label: 'Document Hub', icon: Cloud },
-    { label: 'Settings', icon: Settings },
-  ];
+const sidebarItems = user.role === 'student' ? [
+  { label: 'Dashboard', icon: LayoutDashboard },
+  { label: 'Document Hub', icon: Cloud },
+  { label: 'Certificate Upload', icon: FileCheck },
+  { label: 'Settings', icon: Settings },
+] : [
+  { label: 'Dashboard', icon: LayoutDashboard },
+  { label: 'Review Panel', icon: ShieldCheck, badge: pendingDocsCount },
+  { label: 'Document Hub', icon: Cloud },
+  { label: 'Settings', icon: Settings },
+];
 
-  // Calculate storage percentage for sidebar widget
-  const storageUsedPercent = (user.storageUsed / user.storageLimit) * 100;
-
-  return (
-    <div className="min-h-screen flex bg-slate-50">
-      <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
-      <PersonalUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} onUpload={handlePersonalUpload} />
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-100 transition-all duration-300 ease-in-out
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}
-      `}>
-        <div className="h-full flex flex-col p-8">
-          <div className="flex items-center justify-between mb-12">
-            <div className="flex items-center space-x-3 text-indigo-600">
-              <Cloud size={32} />
-              <span className="text-2xl font-black tracking-tighter text-slate-900">CloudCert</span>
-            </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400">
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="space-y-1 mb-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Main Navigation</p>
-            {sidebarItems.map((item) => (
-              <SidebarItem 
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                badge={item.badge}
-                active={activeView === item.label}
-                onClick={() => {
-                  setActiveView(item.label);
-                  if (item.label === 'Document Hub') setActiveFilter('All');
-                }}
-              />
-            ))}
-          </div>
-
-          <div className="space-y-1">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Quick Filters</p>
-             {[
-               { label: 'Fee Receipts', icon: CreditCard, type: DocType.FEE_RECEIPT },
-               { label: 'Hall Tickets', icon: FileCheck, type: DocType.HALL_TICKET },
-               { label: 'Results', icon: Zap, type: DocType.RESULT },
-               { label: 'Certificates', icon: Crown, type: DocType.CERTIFICATE },
-             ].map(cat => (
-               <SidebarItem 
-                 key={cat.label} 
-                 icon={cat.icon} 
-                 label={cat.label} 
-                 active={activeView === 'Document Hub' && activeFilter === cat.type} 
-                 onClick={() => { 
-                    setActiveView('Document Hub'); 
-                    setActiveFilter(cat.type);
-                 }} 
-               />
-             ))}
-          </div>
-
-          <div className="mt-auto pt-8 border-t border-slate-50">
-            <button 
-                onClick={() => setIsUploadModalOpen(true)}
-                className="w-full mb-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center justify-center space-x-2"
-            >
-                <Cloud size={18} />
-                <span>Upload Personal File</span>
-            </button>
-            <div className="p-5 bg-indigo-50 rounded-2xl mb-6">
-               <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black text-indigo-600 uppercase">Storage</span>
-                  <span className="text-[10px] font-bold text-indigo-400">{storageUsedPercent.toFixed(0)}% Used</span>
-               </div>
-               <div className="w-full h-1.5 bg-indigo-200/30 rounded-full overflow-hidden">
-                  <div style={{ width: `${storageUsedPercent}%` }} className="h-full bg-indigo-600 rounded-full shadow-sm shadow-indigo-200" />
-               </div>
-               <button onClick={() => setIsPremiumModalOpen(true)} className="w-full mt-4 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition">
-                 Get More Space
-               </button>
-            </div>
-            <button 
-              onClick={() => setUser(null)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors font-bold text-sm"
-            >
-              <div className="flex items-center space-x-3">
-                <LogOut size={18} />
-                <span>Sign Out</span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Topbar */}
-        <header className="h-24 bg-white/80 backdrop-blur-md px-10 flex items-center justify-between sticky top-0 z-40 border-b border-slate-100">
-          <div className="flex items-center space-x-6 flex-1">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition">
-              <Menu size={20} />
-            </button>
-            <div className="relative max-w-md w-full hidden md:block group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search your cloud drive..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition text-sm font-medium"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-8">
-            <button className="relative p-3 text-slate-400 hover:text-indigo-600 transition">
-              <Bell size={22} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
-            </button>
-            <div className="flex items-center space-x-4 pl-8 border-l border-slate-100">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-slate-800">{user.name}</p>
-                <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">{user.role}</p>
-              </div>
-              <div className="relative group cursor-pointer">
-                <img src={user.avatar} className="w-12 h-12 rounded-[20px] object-cover ring-4 ring-indigo-50 group-hover:ring-indigo-200 transition" alt="Avatar" />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border border-slate-100 rounded-lg flex items-center justify-center text-indigo-600 shadow-lg">
-                  <ShieldCheck size={12} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* View Container */}
-        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-10">
-          <motion.div
-            key={activeView}
-            initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-            className="max-w-7xl mx-auto"
-          >
-            <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-               <div>
-                  <h2 className="text-4xl font-black text-slate-800 tracking-tight">{activeView}</h2>
-                  <p className="text-slate-500 font-medium text-sm mt-1">
-                    {activeView === 'Dashboard' && 'At a glance overview of your academic records.'}
-                    {activeView === 'Document Hub' && 'Manage and access your stored academic files.'}
-                    {activeView === 'Certificate Upload' && 'Earn points by verifying your external achievements.'}
-                    {activeView === 'Review Panel' && 'Approve or reject student submission requests.'}
-                  </p>
-               </div>
-               {activeView === 'Dashboard' && (
-                  <button onClick={() => setIsPremiumModalOpen(true)} className="flex items-center space-x-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-100 hover:shadow-indigo-100 hover:border-indigo-100 transition-all text-sm font-bold text-slate-700">
-                    <Crown size={16} className="text-amber-500" />
-                    <span>Go Premium</span>
-                  </button>
-               )}
-            </div>
-
-            {activeView === 'Dashboard' && user.role === 'student' && (
-              <StudentDashboard user={user} documents={documents} onAction={setActiveView} onUploadPersonal={() => setIsUploadModalOpen(true)} />
-            )}
-            
-            {activeView === 'Dashboard' && user.role === 'teacher' && (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                 <Card title="Quick Tasks" subtitle="Items requiring your signature">
-                    <div className="space-y-4">
-                       <button onClick={() => setActiveView('Review Panel')} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-indigo-50 transition group">
-                          <div className="flex items-center space-x-3">
-                             <div className="p-2 bg-white rounded-lg text-indigo-600"><ShieldCheck size={18} /></div>
-                             <div className="text-left">
-                                <p className="text-sm font-bold text-slate-800">Pending Reviews</p>
-                                <p className="text-xs text-slate-500">Validate {pendingDocsCount} submissions</p>
-                             </div>
-                          </div>
-                          <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-600" />
-                       </button>
-                       <div className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl opacity-50 cursor-not-allowed">
-                          <div className="flex items-center space-x-3">
-                             <div className="p-2 bg-white rounded-lg text-emerald-600"><CheckCircle2 size={18} /></div>
-                             <div className="text-left">
-                                <p className="text-sm font-bold text-slate-800">Transcript Requests</p>
-                                <p className="text-xs text-slate-500">0 requests today</p>
-                             </div>
-                          </div>
-                          <ChevronRight size={16} className="text-slate-300" />
-                       </div>
-                    </div>
-                 </Card>
-                 <Card title="Approval Analytics" subtitle="Monthly validation overview">
-                    <div className="h-32 flex items-end justify-between px-2 gap-2 mt-4">
-                       {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
-                         <div key={i} className="flex-1 bg-indigo-50 rounded-t-lg relative group">
-                            <div style={{ height: `${h}%` }} className="absolute bottom-0 left-0 w-full bg-indigo-600 rounded-t-lg group-hover:bg-indigo-500 transition" />
-                         </div>
-                       ))}
-                    </div>
-                    <div className="flex justify-between mt-2 px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                       <span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span>
-                    </div>
-                 </Card>
-               </div>
-            )}
-            {activeView === 'Document Hub' && (
-              <DocumentHub documents={documents} searchQuery={searchQuery} onOpenPremium={() => setIsPremiumModalOpen(true)} activeFilter={activeFilter} />
-            )}
-            {activeView === 'Certificate Upload' && (
-              <CertificateManager documents={documents} setDocuments={setDocuments} />
-            )}
-            {activeView === 'Review Panel' && (
-              <TeacherReviewPanel documents={documents} setDocuments={setDocuments} />
-            )}
-            {activeView === 'Settings' && (
-              <Card title="Security & Preferences" subtitle="Configure your institutional profile.">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div>
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Display Name</label>
-                       <input type="text" defaultValue={user.name} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:outline-none" />
-                    </div>
-                    <div>
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Email Address</label>
-                       <input type="email" defaultValue={user.email} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:outline-none" />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
-                       <div>
-                          <p className="text-sm font-bold text-slate-800">Email Notifications</p>
-                          <p className="text-xs text-slate-500">Receive alerts for document approvals.</p>
-                       </div>
-                       <div className="w-12 h-6 bg-indigo-600 rounded-full relative cursor-pointer shadow-lg shadow-indigo-100">
-                          <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
-                       </div>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between opacity-50">
-                       <div>
-                          <p className="text-sm font-bold text-slate-800">SMS Verification</p>
-                          <p className="text-xs text-slate-500">Two-factor login via mobile device.</p>
-                       </div>
-                       <div className="w-12 h-6 bg-slate-300 rounded-full relative cursor-pointer">
-                          <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
-                       </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-10 pt-8 border-t border-slate-50 flex justify-end">
-                   <button className="px-10 py-3 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 transition shadow-xl shadow-indigo-100">
-                      Save Changes
-                   </button>
-                </div>
-              </Card>
-            )}
-          </motion.div>
-        </div>
-      </main>
-    </div>
-  );
+// Calculate storage percentage safely
+const storageUsedPercent = user.storageLimit > 0
+  ? (user.storageUsed / user.storageLimit) * 100
+  : 0;
 }

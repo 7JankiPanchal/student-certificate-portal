@@ -19,7 +19,7 @@ export const MOCK_TEACHER: User = {
   pointsEarned: 0,
   pointsTarget: 0,
   storageUsed: 0,
-  storageLimit: 0,
+  storageLimit: 10,
   avatar: "https://picsum.photos/seed/sarah/200/200"
 };
 
