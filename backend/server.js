@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
+
+import { saveToDB } from './dbOperations.js';
 dotenv.config();
 
 import express from 'express';
@@ -37,6 +40,8 @@ app.post('/upload', upload.single('certificate'), async (req, res) => {
 
         // ☁️ Step 3: Upload to S3
         const fileURL = await uploadFile(file);
+        const id = Date.now().toString(); // simple unique id
+        await saveToDB(id, fileURL, hash, signature);  
 
         // 🧠 Store for verification (temporary)
         storedData = {
@@ -102,4 +107,5 @@ app.post('/verify', upload.single('certificate'), async (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
 });

@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
 dotenv.config();
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
