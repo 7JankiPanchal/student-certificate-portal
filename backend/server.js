@@ -16,7 +16,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Custom operations from backend folders
-import { saveToDB, getDocumentData, createUser, getUserByEmail, getDocumentsForStudent } from './dbOperations.js';
+import { saveToDB, getDocumentData, createUser, getUserByEmail, getDocumentsForStudent, getPendingDocuments, updateDocumentStatus, addPointsToStudent } from './dbOperations.js';
 import generateHash from '../backend-security/hashing.js';
 import signCertificate from '../backend-security/signature.js';
 import verifySignature from '../backend-security/verifySignature.js';
@@ -106,7 +106,7 @@ app.get("/get-upload-url", async (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role } = req.body;
         
         if (!name || !email || !password) {
             return res.status(400).json({ message: "Please provide all required fields" });
@@ -126,11 +126,12 @@ app.post('/register', async (req, res) => {
         const studentId = `STU-${Date.now()}`;
 
         // Save to DB
-        await createUser(studentId, name, email, hashedPassword);
+        const requestedRole = role === "TEACHER" ? "TEACHER" : "STUDENT";
+        await createUser(studentId, name, email, hashedPassword, requestedRole);
 
         // Generate JWT Token
         const jwtSecret = process.env.JWT_SECRET || 'fallback_secret_key';
-        const token = jwt.sign({ student_id: studentId, email }, jwtSecret, { expiresIn: '2h' });
+        const token = jwt.sign({ student_id: studentId, email, role: requestedRole }, jwtSecret, { expiresIn: '2h' });
 
         res.status(201).json({
             message: "User registered successfully",
@@ -138,7 +139,8 @@ app.post('/register', async (req, res) => {
             user: {
                 student_id: studentId,
                 name,
-                email
+                email,
+                role: requestedRole
             }
         });
     } catch (error) {
@@ -168,7 +170,8 @@ app.post('/login', async (req, res) => {
 
         // Generate JWT Token
         const jwtSecret = process.env.JWT_SECRET || 'fallback_secret_key';
-        const token = jwt.sign({ student_id: user.student_id.S, email }, jwtSecret, { expiresIn: '2h' });
+        const role = user.role?.S || "STUDENT";
+        const token = jwt.sign({ student_id: user.student_id.S, email, role }, jwtSecret, { expiresIn: '2h' });
 
         res.json({
             message: "Login successful",
@@ -176,7 +179,8 @@ app.post('/login', async (req, res) => {
             user: {
                 student_id: user.student_id.S,
                 name: user.name.S,
-                email: user.email.S
+                email: user.email.S,
+                role
             }
         });
     } catch (error) {
@@ -191,12 +195,21 @@ app.get('/documents', authMiddleware, async (req, res) => {
         const studentId = req.user.student_id;
         const documents = await getDocumentsForStudent(studentId);
         
-        const formattedDocs = documents.map(doc => ({
-            document_id: doc.document_id.S,
-            hash: doc.hash?.S,
-            signature: doc.signature?.S,
-            uploadDate: new Date().toISOString() // We can enhance Dynamo later with exact timestamps
-        }));
+        const formattedDocs = documents.map(doc => {
+            const isAccepted = doc.status?.S === "ACCEPTED";
+            return {
+                document_id: doc.document_id.S,
+                status: doc.status?.S || "PENDING",
+                requested_points: doc.requested_points?.N,
+                teacher_message: doc.teacher_message?.S,
+                hash: isAccepted ? doc.hash?.S : null,
+                signature: isAccepted ? doc.signature?.S : null,
+                uploadDate: doc.upload_date?.S || new Date().toISOString() // fallback to now if missing
+            };
+        });
+
+        // Sort descending by uploadDate (newest first)
+        formattedDocs.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
 
         res.json({ documents: formattedDocs });
     } catch (error) {
@@ -226,16 +239,20 @@ app.post('/upload', authMiddleware, upload.single('certificate'), async (req, re
         const fileURL = await uploadFile(file);
         
         // Use student_id from request, or generate one if testing
-        const id = req.body.student_id || Date.now().toString(); 
-        await saveToDB(id, fileURL, hash, signature);
+        const id = req.user?.student_id || req.body.student_id || Date.now().toString(); 
+        const requestedPoints = req.body.requested_points || 0;
+        const uploadDate = new Date().toISOString();
+        
+        await saveToDB(id, fileURL, hash, signature, uploadDate, requestedPoints, "PENDING");
 
         res.json({
-            message: "File uploaded securely",
+            message: "File uploaded securely. Pending teacher review.",
             student_id: id,
             document_id: fileURL,
             fileURL,
-            hash,
-            signature
+            status: "PENDING",
+            requested_points: requestedPoints,
+            uploadDate
         });
     } catch (error) {
         console.error("Upload failed:", error);
@@ -279,6 +296,67 @@ app.post('/verify', authMiddleware, upload.single('certificate'), async (req, re
     } catch (error) {
         console.error("Verification failed:", error);
         res.status(500).json({ message: "Verification failed", error: error.message });
+    }
+});
+
+// =======================
+// 👩‍🏫 TEACHER REVIEW API
+// =======================
+
+app.get('/documents/pending', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== "TEACHER") {
+            return res.status(403).json({ message: "Access denied. Teachers only." });
+        }
+        
+        const docs = await getPendingDocuments();
+        const formattedDocs = docs.map(doc => ({
+            student_id: doc.student_id.S,
+            document_id: doc.document_id.S,
+            uploadDate: doc.upload_date?.S,
+            requested_points: doc.requested_points?.N,
+        }));
+        
+        res.json({ pending_documents: formattedDocs });
+    } catch (error) {
+        console.error("Error fetching pending docs:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/documents/review', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== "TEACHER") {
+            return res.status(403).json({ message: "Access denied. Teachers only." });
+        }
+        
+        const { student_id, document_id, action, message } = req.body;
+        if (!student_id || !document_id || !action) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        if (action === "REJECT") {
+            await updateDocumentStatus(student_id, document_id, "REJECTED", message);
+            return res.json({ message: "Document rejected", document_id });
+        } else if (action === "ACCEPT") {
+            await updateDocumentStatus(student_id, document_id, "ACCEPTED", "Approved");
+            
+            // Re-fetch document data to find requested points
+            const docData = await getDocumentData(student_id, document_id);
+            if (docData && docData.requestedPoints) {
+                await addPointsToStudent(student_id, docData.requestedPoints);
+            }
+            
+            return res.json({ message: "Document accepted and points awarded", document_id });
+        } else {
+            return res.status(400).json({ message: "Invalid action" });
+        }
+    } catch (error) {
+        if (error.name === "ConditionalCheckFailedException") {
+            return res.status(404).json({ message: "Document not found. Ensure student_id and document_id match exactly." });
+        }
+        console.error("Error reviewing doc:", error);
+        res.status(500).json({ message: "Review failed", error: error.message });
     }
 });
 
