@@ -1,13 +1,14 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: './.env' });
+dotenv.config({ path: '../.env' });
+dotenv.config();
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const client = new S3Client({
-    region: process.env.AWS_REGION,
+    region: process.env.AWS_REGION || process.env.DYNAMO_REGION || 'us-east-1',
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY,
-        secretAccessKey: process.env.AWS_SECRET_KEY
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY
     }
 });
 
