@@ -1,10 +1,36 @@
-import crypto from 'crypto';
+export const publicKey = `-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAnvP4GmYCWLAJ+3Se5tvVY9FtCBaSoYJLWTIo22I+223ZheKMaEu+
+yNgUyzvhMLs8BC1mJwo3ecy12hzLWCW0AySV9wyOISYYQlsVOdeHNONIOPMrujc7
+2PPJhvTNGn8Ok+hmWaE9tMUX1OssnkzkRyAmFk72p1Z84O6+Edg+t5TU+mbCZBCq
+FOnVY8dxixs8uO1ptaCHPy5XOjIpZq2isrYZn3seKKoC/DDBXumq7pKMzMWmyIgF
+LiETUZajedkjY+6ouPYOfJj90WKmwOrnTLGsBbF7M6LDWDvHssqPD5qz530/1WB4
+e69grMTmdWaG2PuoW9KhpHxq4+VMP7PZywIDAQAB
+-----END RSA PUBLIC KEY-----`;
 
-const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048, // strong security
-});
-
-export { publicKey, privateKey };
-
-console.log(publicKey.export({ type: 'pkcs1', format: 'pem' }));
-console.log(privateKey.export({ type: 'pkcs1', format: 'pem' }));
+export const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAnvP4GmYCWLAJ+3Se5tvVY9FtCBaSoYJLWTIo22I+223ZheKM
+aEu+yNgUyzvhMLs8BC1mJwo3ecy12hzLWCW0AySV9wyOISYYQlsVOdeHNONIOPMr
+ujc72PPJhvTNGn8Ok+hmWaE9tMUX1OssnkzkRyAmFk72p1Z84O6+Edg+t5TU+mbC
+ZBCqFOnVY8dxixs8uO1ptaCHPy5XOjIpZq2isrYZn3seKKoC/DDBXumq7pKMzMWm
+yIgFLiETUZajedkjY+6ouPYOfJj90WKmwOrnTLGsBbF7M6LDWDvHssqPD5qz530/
+1WB4e69grMTmdWaG2PuoW9KhpHxq4+VMP7PZywIDAQABAoIBAAbR3olkwAwFvYqR
+izHKKSJ9Ep8ADO7WCXKRwYlWx+31OBnTnwToibknSuPEtW7i/E+3kkRG3sYgijA0
+qmV6n08VNkP2a3Cw/ZB3RPa0MG5h+VrMKspKDWIhD4/1QomKUwSgj3z1UJGddTN4
+RZ6jG5Y7owwI+5yGtu6Vql0B+KrlVq2gO31t0dkKXhef18LCLXPd0kjyHs0edIj2
+g5RseMaUvK0SrSqDzc7GHNzKXhpN3aGL5mVZ5yUA1kaGyslM1O7z0+/Gwiz0xwqi
+7OwAyGjATcAeWCGxdnpceNx0CppS0MFPQczkTMbAJqii24rzuX3dy7/HHLhv8fxI
+J7X0koECgYEA0UhqzucywaaT3PCm8+YRZpPM7JHDSZbQa5+BG35sfxOUVd0J0Yg4
+tyjtgj63m7saqxcKXFTg00IQdmqr4en0SFkCPSlWCvreaO/CAcd6L8Oz3b75yzp4
+vWbah0pzleO4/NZA6X9sZ/Z70t0B5hF+NzQpfPFoIs84pSrTSX+gwoECgYEAwm9s
+k7Hqy7gq/Fmj+9J5ktRM8y81MnAAqYtUwyp772771jKypaKN8hROOFoQM2faCGV1
+X9rDa0IG79cVm/e/v8txM9UuD8NQoxtxflz2f6V0HfY55xyxZ6oBjzpbN4iWP3CG
+8AjUhIku/q4DafUsgg8DN21AQFO1oTGVmZ1v3ksCgYEAnygjkhXhU8QKzwt07Ccb
+NJdSUNbJXT2EY1R6Kx6KBFovhN0EioS+HQzTEyn/GD/CmDp9dppWIFMtkeCttrDl
+Rd/rA/hbpx4B5mvvbsr08T4zm3+RGCzvhZqitiC4plT4ac/Grcxp9OZOZJ4Ow5iq
+E/FnW817FH3i5jkbVdnpuAECgYAIzjMEnVIc18Jam1Sp2uZWl/bELKckGZ5uDzlP
+fWUPet883B7rEWmMRQ8lzi5dpZ5iMvYV2TpwaRUXV45K+fVdIkGGL2lenWHRgTSq
+nFstfLi9gqEsrkf6geCANAxdf3oOdXIm/L9jITNXpVnSOqBBY5yprfDy+NeI7U3x
+Hwgp8QKBgF5lK6IkJXl4nCW0UyrVv/5nUIpRdI8z6Uwg5GaE1d4jgUAxZKqnJyip
+/93G9JPdlJ4SSTukPe53wIyIbIRfcFQY7KqIFl8VQBMz4gZo3a+pQ7S25HvS7I1g
+5FbDQHg/1iiH79ao4TkkaXXJm9zao/74MYvHg+LUcTZ3o5jvbvsg
+-----END RSA PRIVATE KEY-----`;

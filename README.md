@@ -34,7 +34,7 @@ The **Student Certificate Portal** is a full-stack system enabling:
 
 | Layer    | Technology/Service                  |
 | -------- | ----------------------------------- |
-| Frontend | React.js + TypeScript + TailwindCSS |
+| Frontend | React.js + TypeScript + TailwindCSS (Source in `frontend/`) |
 | Backend  | Node.js + Express + DynamoDB        |
 | Storage  | AWS S3                              |
 | DevOps   | Docker + Jenkins + AWS EC2          |
@@ -148,7 +148,7 @@ flowchart TD
 **High-Level Architecture**:
 
 ```
-Frontend (React)  -->  Backend (Node.js/Express)  -->  AWS (DynamoDB + S3)
+Frontend (frontend/)  -->  Backend (Node.js/Express)  -->  AWS (DynamoDB + S3)
       |                   |                             |
       v                   v                             v
   Users/Clients      CI/CD via Jenkins               Secure Cloud Storage

@@ -1,7 +1,7 @@
-import { PutItemCommand, GetItemCommand, ScanCommand, QueryCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { PutItemCommand, GetItemCommand, ScanCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand } from "@aws-sdk/client-dynamodb";
 import client from "./dynamo.js";
 
-export async function saveToDB(id, fileURL, hash, signature, uploadDate, requestedPoints, status = "PENDING") {
+export async function saveToDB(id, fileURL, hash, signature, uploadDate, requestedPoints, status = "PENDING", fileSize = 0) {
     const params = {
         TableName: process.env.AWS_TABLE_NAME || process.env.DYNAMO_TABLE_NAME,
         Item: {
@@ -13,6 +13,7 @@ export async function saveToDB(id, fileURL, hash, signature, uploadDate, request
             status: { S: status },
             requested_points: { N: requestedPoints ? requestedPoints.toString() : "0" },
             teacher_message: { S: "" },
+            file_size: { N: fileSize ? fileSize.toString() : "0" },
         },
     };
 
@@ -88,6 +89,18 @@ export async function getDocumentsForStudent(studentId) {
     return result.Items.filter(item => item.document_id.S !== "USER_PROFILE");
 }
 
+export async function getAllUserProfiles() {
+    const params = {
+        TableName: process.env.AWS_TABLE_NAME || process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: "document_id = :profile",
+        ExpressionAttributeValues: {
+            ":profile": { S: "USER_PROFILE" }
+        }
+    };
+    const result = await client.send(new ScanCommand(params));
+    return result.Items || [];
+}
+
 export async function getPendingDocuments() {
     const params = {
         TableName: process.env.AWS_TABLE_NAME || process.env.DYNAMO_TABLE_NAME,
@@ -97,6 +110,18 @@ export async function getPendingDocuments() {
         },
         ExpressionAttributeValues: {
             ":pending": { S: "PENDING" },
+            ":profile": { S: "USER_PROFILE" }
+        }
+    };
+    const result = await client.send(new ScanCommand(params));
+    return result.Items || [];
+}
+
+export async function getAllDocuments() {
+    const params = {
+        TableName: process.env.AWS_TABLE_NAME || process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: "document_id <> :profile",
+        ExpressionAttributeValues: {
             ":profile": { S: "USER_PROFILE" }
         }
     };
@@ -138,4 +163,15 @@ export async function addPointsToStudent(studentId, pointsToAdd) {
         }
     };
     await client.send(new UpdateItemCommand(params));
+}
+
+export async function deleteDocumentFromDB(studentId, documentId) {
+    const params = {
+        TableName: process.env.AWS_TABLE_NAME || process.env.DYNAMO_TABLE_NAME,
+        Key: {
+            student_id: { S: studentId },
+            document_id: { S: documentId },
+        },
+    };
+    await client.send(new DeleteItemCommand(params));
 }

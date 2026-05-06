@@ -16,7 +16,8 @@ async function uploadFile(file) {
     const params = {
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: file.originalname,
-        Body: file.buffer
+        Body: file.buffer,
+        ContentType: file.mimetype || 'application/octet-stream'
     };
 
     const command = new PutObjectCommand(params);
